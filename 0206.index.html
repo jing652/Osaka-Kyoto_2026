@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Osaka & Kyoto Trip+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@700&family=Yomogi:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-cream: #f2ece4; --card-cream: #fffefc; --dusty-rose: #cfa8a8; --dusty-rose-dark: #b58e8e; --text-brown: #5c4e4e; }
+        body { font-family: 'Yomogi', 'Mali', sans-serif; font-weight: 700; background: #e8e0d5; color: var(--text-brown); margin: 0; display: flex; justify-content: center; }
+        .marker-font { font-family: 'Mali', cursive; }
+        .phone-container { width: 100%; max-width: 430px; background: var(--bg-cream); min-height: 100vh; position: relative; padding-bottom: 100px; }
+        
+        .card-base { background: var(--card-cream); border-radius: 12px; padding: 0.8rem; margin-bottom: 0.8rem; border: 1.5px solid #eaddd0; box-shadow: 2px 2px 0px rgba(207, 168, 168, 0.2); position: relative; }
+        .btn-rose { background: var(--dusty-rose); color: white; padding: 0.3rem 0.7rem; border-radius: 8px; font-size: 0.75rem; box-shadow: 2px 2px 0px var(--dusty-rose-dark); }
+        .img-box { width: 100%; height: 140px; border-radius: 8px; object-fit: cover; margin: 8px 0; background: #eee; }
+        
+        .nav-container { background: rgba(255, 254, 252, 0.95); border-top: 1.5px solid #eaddd0; }
+        .nav-active { color: var(--dusty-rose); border-top: 3px solid var(--dusty-rose); }
+        
+        #edit-modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
+        .modal-body { background: var(--bg-cream); width: 100%; max-width: 380px; border-radius: 20px; padding: 1.5rem; border: 2px solid var(--dusty-rose); box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+        .input-group { margin-bottom: 0.8rem; }
+        .input-group label { display: block; font-size: 0.75rem; color: var(--dusty-rose); margin-bottom: 4px; }
+        .input-group input, .input-group textarea, .input-group select { width: 100%; background: white; border: 1.5px solid #eaddd0; border-radius: 8px; padding: 8px; font-size: 0.9rem; font-family: 'Yomogi'; outline: none; }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <header class="sticky top-0 z-50 bg-[#f2ece4]/90 backdrop-blur-md px-4 py-3 border-b border-dashed border-[#eaddd0]">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-lg marker-font">Osaka & Kyoto</h1>
+                <div class="flex items-center space-x-2 text-[11px] mt-1 bg-white/40 p-1 rounded-lg">
+                    <span id="osaka-weather">🌸 OSA ...</span>
+                    <span class="text-[#dcb5b5]">|</span>
+                    <span id="kyoto-weather">🍁 KYO ...</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="px-2 py-1 bg-white/60 rounded-lg border border-[#eaddd0]">
+                    <span class="text-[9px]">1 JPY=</span>
+                    <span id="rate-value" class="marker-font text-base text-[#cfa8a8]">0.204</span>
+                    <span class="text-[9px]">TWD</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="p-4" id="content-area"></main>
+
+    <div id="edit-modal">
+        <div class="modal-body">
+            <h2 class="text-center text-lg mb-4 text-[#5c4e4e]">✏️ 編輯內容</h2>
+            <div id="modal-inputs"></div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal()" class="flex-1 py-2 bg-white border border-[#eaddd0] rounded-xl text-sm">取消</button>
+                <button onclick="saveEdit()" class="flex-1 py-2 btn-rose rounded-xl text-sm">儲存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-container fixed bottom-0 w-full max-w-[430px] px-1 py-2 z-50 flex justify-around items-center pb-6">
+        <button onclick="switchTab('itinerary')" class="nav-btn flex flex-col items-center w-1/6" data-id="itinerary"><span>📅</span><span class="text-[9px]">Trip</span></button>
+        <button onclick="switchTab('attractions')" class="nav-btn flex flex-col items-center w-1/6" data-id="attractions"><span>⛩️</span><span class="text-[9px]">景點</span></button>
+        <button onclick="switchTab('hotels')" class="nav-btn flex flex-col items-center w-1/6" data-id="hotels"><span>🏨</span><span class="text-[9px]">住宿</span></button>
+        <button onclick="switchTab('restaurants')" class="nav-btn flex flex-col items-center w-1/6" data-id="restaurants"><span>🍜</span><span class="text-[9px]">美食</span></button>
+        <button onclick="switchTab('transport')" class="nav-btn flex flex-col items-center w-1/6" data-id="transport"><span>🚃</span><span class="text-[9px]">交通</span></button>
+        <button onclick="switchTab('others')" class="nav-btn flex flex-col items-center w-1/6" data-id="others"><span>📝</span><span class="text-[9px]">備註</span></button>
+    </nav>
+</div>
+
+<script>
+let currentTab = 'itinerary';
+let selectedDate = '3/18';
+let transportType = '飛機';
+let currentEditId = null;
+
+// 初始化數據
+let store = JSON.parse(localStorage.getItem('ok_trip_v4')) || {
+    itinerary: [{ id: 1, date: '3/18', time: '12:00', loc: '關西機場 (KIX)', note: '抵達後換 JR PASS' }],
+    attractions: [],
+    hotels: [],
+    restaurants: [],
+    transport: [],
+    others: []
+};
+
+const iconEdit = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>`;
+
+// --- 即時天氣功能 ---
+async function updateWeather() {
+    const coords = { osaka: { lat: 34.69, lon: 135.50 }, kyoto: { lat: 35.01, lon: 135.76 } };
+    const getWeatherIcon = (code) => {
+        if (code <= 1) return '☀️';
+        if (code <= 3) return '☁️';
+        if (code <= 67) return '🌧️';
+        return '❄️';
+    };
+
+    try {
+        for (const city of ['osaka', 'kyoto']) {
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords[city].lat}&longitude=${coords[city].lon}&current_weather=true`);
+            const data = await res.json();
+            const temp = Math.round(data.current_weather.temperature);
+            const icon = getWeatherIcon(data.current_weather.weathercode);
+            document.getElementById(`${city}-weather`).innerText = `${city === 'osaka' ? '🌸 OSA' : '🍁 KYO'} ${icon} ${temp}°`;
+        }
+    } catch (e) { console.error("天氣獲取失敗", e); }
+}
+
+function render() {
+    const area = document.getElementById('content-area');
+    let html = '';
+    const actionBtns = (tab, item) => `
+        <div class="absolute top-2 right-2 flex items-center space-x-3">
+            <button onclick="openModal('${tab}', ${item.id})" class="text-[#887a7a] hover:text-[#cfa8a8]">${iconEdit}</button>
+            <button onclick="deleteItem('${tab}', ${item.id})" class="text-xs opacity-30 hover:opacity-100">✕</button>
+        </div>`;
+
+    if (currentTab === 'itinerary') {
+        html = `<div class="flex justify-between items-center mb-4"><h2 class="text-lg">Trip</h2><button onclick="addItem()" class="btn-rose">+ 加行程</button></div>`;
+        store.itinerary.sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).forEach(i => {
+            html += `<div class="card-base">${actionBtns('itinerary', i)}
+                <div class="flex items-center space-x-2">
+                    <span class="bg-[#cfa8a8] text-white text-[9px] px-1.5 py-0.5 rounded">${i.date}</span>
+                    <span class="marker-font text-[#cfa8a8] text-xs">${i.time}</span>
+                </div>
+                <div class="text-sm font-bold mt-1">📍 ${i.loc}</div>
+                <div class="text-[11px] text-gray-500">${i.note}</div>
+            </div>`;
+        });
+    } 
+    else if (['attractions', 'hotels', 'restaurants'].includes(currentTab)) {
+        html = `<div class="flex justify-between items-center mb-4">
+            <select onchange="selectedDate=this.value;render()" class="bg-white border rounded px-2 py-1 text-xs outline-none">
+                ${['3/18','3/19','3/20','3/21','3/22'].map(d=>`<option value="${d}" ${selectedDate===d?'selected':''}>${d}</option>`).join('')}
+            </select>
+            <button onclick="addItem()" class="btn-rose">+ 新增項目</button>
+        </div>`;
+        const list = store[currentTab].filter(item => item.date === selectedDate);
+        list.forEach(item => {
+            html += `<div class="card-base">${actionBtns(currentTab, item)}
+                <h3 class="text-sm font-bold text-gray-800 pr-12">${item.name}</h3>
+                <img src="${item.img || 'https://placehold.co/400x200?text=No+Image'}" class="img-box" onerror="this.src='https://placehold.co/400x200?text=No+Image'">
+                <div class="text-[10px] space-y-1">
+                    <p><span class="text-[#cfa8a8]">🕒：</span>${item.time}</p>
+                    <p><span class="text-[#cfa8a8]">🏠：</span>${item.addr || '未設定'}</p>
+                    <p class="text-gray-500 mt-1 border-t border-dashed pt-1">${item.note || ''}</p>
+                </div>
+            </div>`;
+        });
+    }
+    else if (currentTab === 'transport') {
+        const types = ['飛機', '火車', '汽車', '地鐵'];
+        html = `<div class="flex gap-2 mb-4 overflow-x-auto pb-1">` + 
+               types.map(t => `<button onclick="transportType='${t}';render()" class="whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] ${transportType===t?'bg-[#cfa8a8] text-white':'bg-white text-gray-400 border border-gray-100'}">${t}</button>`).join('') + 
+               `</div>`;
+        html += `<button onclick="addItem()" class="w-full btn-rose mb-4">+ 新增${transportType}紀錄</button>`;
+        const list = store.transport.filter(t => t.type === transportType);
+        list.forEach(t => {
+            html += `<div class="card-base">${actionBtns('transport', t)}
+                <div class="marker-font text-[#cfa8a8] text-xs mb-1">🕒 ${t.time || '未設定'}</div>
+                <div class="text-sm font-bold">${t.name}</div>
+                <div class="text-[11px] text-gray-500 mt-1">${t.note}</div>
+            </div>`;
+        });
+    }
+    else if (currentTab === 'others') {
+        html = `<div class="flex justify-between items-center mb-4"><h2 class="text-lg">備註筆記</h2><button onclick="addItem()" class="btn-rose">+ 加筆記</button></div>`;
+        store.others.forEach(o => {
+            html += `<div class="card-base">${actionBtns('others', o)}
+                <div class="text-sm font-bold border-b border-dashed border-[#eaddd0] pb-1 mb-1">📌 ${o.name}</div>
+                <div class="text-[11px] text-gray-600 whitespace-pre-wrap">${o.note}</div>
+            </div>`;
+        });
+    }
+
+    area.innerHTML = html;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('nav-active', b.dataset.id === currentTab));
+    localStorage.setItem('ok_trip_v4', JSON.stringify(store));
+}
+
+function openModal(tab, id) {
+    currentEditId = { tab, id };
+    const item = store[tab].find(i => i.id === id);
+    const container = document.getElementById('modal-inputs');
+    container.innerHTML = '';
+
+    const addField = (label, fieldId, value, type = 'text') => {
+        const div = document.createElement('div');
+        div.className = 'input-group';
+        div.innerHTML = `<label>${label}</label>`;
+        let input;
+        if(type === 'date-select') {
+            input = document.createElement('select');
+            ['3/18','3/19','3/20','3/21','3/22'].forEach(d => input.innerHTML += `<option value="${d}" ${value===d?'selected':''}>${d}</option>`);
+        } else if(fieldId === 'category') {
+            input = document.createElement('select');
+            input.innerHTML = `<option value="itinerary">Trip (不分類)</option><option value="attractions">⛩️ 景點</option><option value="restaurants">🍜 美食</option><option value="hotels">🏨 住宿</option>`;
+        } else if(fieldId === 'type') {
+            input = document.createElement('select');
+            ['飛機', '火車', '汽車', '地鐵'].forEach(t => input.innerHTML += `<option value="${t}" ${value===t?'selected':''}>${t}</option>`);
+        } else {
+            input = type === 'textarea' ? document.createElement('textarea') : document.createElement('input');
+            input.value = value || '';
+            if(type === 'textarea') input.rows = 4;
+        }
+        input.id = `edit-${fieldId}`;
+        div.appendChild(input);
+        container.appendChild(div);
+    };
+
+    if (tab === 'itinerary') {
+        addField('日期', 'date', item.date, 'date-select');
+        addField('時間', 'time', item.time);
+        addField('地點名稱', 'loc', item.loc);
+        addField('備註', 'note', item.note, 'textarea');
+        addField('自動分類到...', 'category', 'itinerary');
+    } else if (['attractions', 'hotels', 'restaurants'].includes(tab)) {
+        addField('日期', 'date', item.date, 'date-select');
+        addField('名稱', 'name', item.name);
+        addField('圖片網址', 'img', item.img);
+        addField('時間', 'time', item.time);
+        addField('地址', 'addr', item.addr);
+        addField('備註/內容', 'note', item.note, 'textarea');
+    } else if (tab === 'transport') {
+        addField('分類', 'type', item.type);
+        addField('時間/班次', 'time', item.time);
+        addField('交通名稱', 'name', item.name);
+        addField('細節備註', 'note', item.note, 'textarea');
+    } else {
+        addField('標題', 'name', item.name);
+        addField('筆記內容', 'note', item.note, 'textarea');
+    }
+
+    document.getElementById('edit-modal').style.display = 'flex';
+}
+
+function saveEdit() {
+    const { tab, id } = currentEditId;
+    const item = store[tab].find(i => i.id === id);
+
+    if (tab === 'itinerary') {
+        item.date = document.getElementById('edit-date').value;
+        item.time = document.getElementById('edit-time').value;
+        item.loc = document.getElementById('edit-loc').value;
+        item.note = document.getElementById('edit-note').value;
+        const cat = document.getElementById('edit-category').value;
+        if (cat !== 'itinerary') {
+            store[cat].push({ id: Date.now(), date: item.date, name: item.loc, img: '', time: item.time, addr: '', note: item.note });
+            alert(`已同步分類至「${cat}」！`);
+        }
+    } else if (['attractions', 'hotels', 'restaurants'].includes(tab)) {
+        item.date = document.getElementById('edit-date').value;
+        item.name = document.getElementById('edit-name').value;
+        item.img = document.getElementById('edit-img').value;
+        item.time = document.getElementById('edit-time').value;
+        item.addr = document.getElementById('edit-addr').value;
+        item.note = document.getElementById('edit-note').value;
+    } else if (tab === 'transport') {
+        item.type = document.getElementById('edit-type').value;
+        item.time = document.getElementById('edit-time').value;
+        item.name = document.getElementById('edit-name').value;
+        item.note = document.getElementById('edit-note').value;
+    } else {
+        item.name = document.getElementById('edit-name').value;
+        item.note = document.getElementById('edit-note').value;
+    }
+
+    closeModal();
+    render();
+}
+
+function switchTab(t) { currentTab = t; render(); }
+function closeModal() { document.getElementById('edit-modal').style.display = 'none'; }
+function addItem() {
+    const id = Date.now();
+    if (currentTab === 'itinerary') {
+        store.itinerary.push({ id, date: selectedDate, time: '12:00', loc: '新行程', note: '' });
+    } else if (['attractions', 'hotels', 'restaurants'].includes(currentTab)) {
+        store[currentTab].push({ id, date: selectedDate, name: '新項目', img: '', time: '12:00', addr: '', note: '' });
+    } else if (currentTab === 'transport') {
+        store.transport.push({ id, type: transportType, name: '新紀錄', time: '', note: '' });
+    } else {
+        store.others.push({ id, name: '新筆記', note: '' });
+    }
+    render();
+    openModal(currentTab, id);
+}
+function deleteItem(tab, id) {
+    if (confirm("確定刪除？")) {
+        store[tab] = store[tab].filter(i => i.id !== id);
+        render();
+    }
+}
+
+// 啟動
+updateWeather();
+render();
+</script>
+</body>
+</html>
