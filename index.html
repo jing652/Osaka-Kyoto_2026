@@ -21,10 +21,10 @@
         .input-group { margin-bottom: 0.8rem; }
         .input-group label { display: block; font-size: 0.75rem; color: var(--dusty-rose); margin-bottom: 4px; }
         .input-group input, .input-group textarea, .input-group select { width: 100%; background: white; border: 1.5px solid #eaddd0; border-radius: 8px; padding: 8px; font-size: 0.9rem; font-family: 'Yomogi'; outline: none; }
-        
-        /* Trip 專用時間軸樣式 */
         .timeline-line { border-left: 2px dashed #dcb5b5; margin-left: 10px; padding-left: 20px; position: relative; }
         .timeline-dot { content: ''; position: absolute; left: -6px; top: 10px; width: 10px; height: 10px; background: #cfa8a8; border-radius: 50%; border: 2px solid white; }
+        .sync-btn { font-size: 10px; opacity: 0.6; padding: 2px 8px; border-radius: 10px; border: 1px solid #cfa8a8; }
+        .sync-btn:hover { opacity: 1; background: white; }
     </style>
 </head>
 <body>
@@ -33,7 +33,7 @@
     <header class="sticky top-0 z-50 bg-[#f2ece4]/90 backdrop-blur-md px-4 py-3 border-b border-dashed border-[#eaddd0]">
         <div class="flex justify-between items-start">
             <div>
-                <h1 class="text-lg marker-font">Osaka & Kyoto</h1>
+                <h1 class="text-lg marker-font text-[#5c4e4e]">Osaka & Kyoto</h1>
                 <div class="flex items-center space-x-2 text-[11px] mt-1 bg-white/40 p-1 rounded-lg">
                     <span id="osaka-weather">🌸 OSA ...</span>
                     <span class="text-[#dcb5b5]">|</span>
@@ -45,6 +45,10 @@
                     <span class="text-[9px]">1 JPY=</span>
                     <span id="rate-value" class="marker-font text-base text-[#cfa8a8]">0.204</span>
                     <span class="text-[9px]">TWD</span>
+                </div>
+                <div class="flex gap-1 mt-2 justify-end">
+                    <button onclick="exportData()" class="sync-btn text-[#cfa8a8]">📤 匯出</button>
+                    <button onclick="importData()" class="sync-btn text-[#cfa8a8]">📥 匯入</button>
                 </div>
             </div>
         </div>
@@ -79,46 +83,59 @@ let selectedDate = '3/18';
 let transportType = '飛機';
 let currentEditId = null;
 
-// 初始化數據（整合圖表資訊）
-let store = JSON.parse(localStorage.getItem('ok_trip_v5')) || {
+// 預設數據
+const defaultStore = {
     itinerary: [
         { id: 1, date: '3/18', time: '18:50', loc: 'TPE (桃園機場)', note: '16:50 報到 / MM028' },
         { id: 2, date: '3/18', time: '22:15', loc: 'KIX (關西機場)', note: '抵達' },
         { id: 3, date: '3/18', time: '23:00', loc: '機場接送', note: 'INNNN' },
         { id: 4, date: '3/19', time: '07:44', loc: '梅田車站', note: '2週前買票(阪急)' },
         { id: 5, date: '3/19', time: '09:00', loc: '清水寺', note: '需購票，僅收現金' },
-        { id: 6, date: '3/19', time: '14:00', loc: '八坂庚申堂', note: '' },
-        { id: 7, date: '3/19', time: '17:00', loc: '祇園白川', note: '' },
-        { id: 8, date: '3/19', time: '18:30', loc: '晚餐時間', note: '京都/河原町' },
         { id: 9, date: '3/20', time: '09:00', loc: '大阪城天守閣', note: '需事先購票 / 從大手門進' },
-        { id: 10, date: '3/20', time: '13:00', loc: '天神橋筋商店街', note: '午餐' },
-        { id: 11, date: '3/20', time: '19:00', loc: '晚餐預約', note: 'Sukiyaki Tsuruya' },
-        { id: 12, date: '3/21', time: '10:00', loc: '黑門市場', note: '步行10分' },
-        { id: 13, date: '3/21', time: '12:53', loc: '難波車站', note: '搭乘空港急行' },
-        { id: 14, date: '3/21', time: '13:32', loc: 'Outlet', note: '逛街/晚餐' },
         { id: 15, date: '3/22', time: '07:15', loc: 'KIX (關西機場)', note: '05:15 報到 / MM023' }
     ],
-    attractions: [
-        { id: 21, date: '3/19', name: '清水寺', img: '', time: '06:00-18:00', note: '門票現金' },
-        { id: 22, date: '3/19', name: '錦天滿宮', img: '', time: '08:00-20:00', note: '' },
-        { id: 23, date: '3/20', name: '大阪城天守閣', img: '', time: '09:00-18:00', note: '' }
-    ],
-    hotels: [
-        { id: 31, date: '3/19', name: '相鐵FRESA INN 大阪難波', img: '', time: 'Check-in', note: '' },
-        { id: 32, date: '3/21', name: '關西機場日航酒店', img: '', time: 'Check-in', note: '' }
-    ],
-    restaurants: [
-        { id: 41, date: '3/20', name: 'Tsuruya 壽喜燒', img: '', time: '19:00', note: '已預訂' },
-        { id: 42, date: '3/21', name: '千房大阪燒', img: '', time: '11:30', note: '已預訂' }
-    ],
-    transport: [
-        { id: 51, type: '飛機', name: 'MM028', time: '18:50', note: '去程' },
-        { id: 52, type: '飛機', name: 'MM023', time: '07:15', note: '回程' }
-    ],
+    attractions: [{ id: 21, date: '3/19', name: '清水寺', img: '', time: '06:00-18:00', note: '門票現金' }],
+    hotels: [{ id: 31, date: '3/19', name: '相鐵FRESA INN 大阪難波', img: '', time: 'Check-in', note: '' }],
+    restaurants: [{ id: 41, date: '3/20', name: 'Tsuruya 壽喜燒', img: '', time: '19:00', note: '已預訂' }],
+    transport: [{ id: 51, type: '飛機', name: 'MM028', time: '18:50', note: '去程' }],
     others: []
 };
 
+// 讀取 LocalStorage
+let store = JSON.parse(localStorage.getItem('ok_trip_v5')) || defaultStore;
+
 const iconEdit = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>`;
+
+// --- 同步功能 ---
+function exportData() {
+    const dataStr = JSON.stringify(store);
+    // 使用簡單的 prompt 顯示，方便手機長按複製
+    const dummy = document.createElement("textarea");
+    document.body.appendChild(dummy);
+    dummy.value = dataStr;
+    dummy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummy);
+    alert("數據已複製到剪貼簿！請到另一台裝置貼上。");
+}
+
+function importData() {
+    const dataStr = prompt("請貼入從另一台裝置匯出的代碼 (JSON)：");
+    if (dataStr) {
+        try {
+            const parsed = JSON.parse(dataStr);
+            if (parsed.itinerary) {
+                store = parsed;
+                localStorage.setItem('ok_trip_v5', JSON.stringify(store));
+                render();
+                alert("匯入成功！");
+            }
+        } catch (e) {
+            alert("代碼格式錯誤，匯入失敗。");
+        }
+    }
+}
+// ----------------
 
 async function updateWeather() {
     const coords = { osaka: { lat: 34.69, lon: 135.50 }, kyoto: { lat: 35.01, lon: 135.76 } };
@@ -146,9 +163,7 @@ function render() {
     if (currentTab === 'itinerary') {
         const days = ['3/18', '3/19', '3/20', '3/21', '3/22'];
         const dayNames = { '3/18': '第一天', '3/19': '第二天', '3/20': '第三天', '3/21': '第四天', '3/22': '第五天' };
-        
         html = `<div class="flex justify-between items-center mb-6"><h2 class="text-xl marker-font">5D4N Overview</h2><button onclick="addItem()" class="btn-rose">+ 加行程</button></div>`;
-        
         days.forEach(date => {
             const dayItems = store.itinerary.filter(i => i.date === date).sort((a,b) => a.time.localeCompare(b.time));
             html += `
@@ -176,8 +191,7 @@ function render() {
                 </div>
             `;
         });
-    } 
-    else if (['attractions', 'hotels', 'restaurants'].includes(currentTab)) {
+    } else if (['attractions', 'hotels', 'restaurants'].includes(currentTab)) {
         html = `<div class="flex justify-between items-center mb-4">
             <select onchange="selectedDate=this.value;render()" class="bg-white border rounded px-2 py-1 text-xs outline-none">
                 ${['3/18','3/19','3/20','3/21','3/22'].map(d=>`<option value="${d}" ${selectedDate===d?'selected':''}>${d}</option>`).join('')}
@@ -195,8 +209,7 @@ function render() {
                 </div>
             </div>`;
         });
-    }
-    else if (currentTab === 'transport') {
+    } else if (currentTab === 'transport') {
         const types = ['飛機', '火車', '汽車', '地鐵'];
         html = `<div class="flex gap-2 mb-4 overflow-x-auto pb-1">` + 
                types.map(t => `<button onclick="transportType='${t}';render()" class="whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] ${transportType===t?'bg-[#cfa8a8] text-white':'bg-white text-gray-400 border border-gray-100'}">${t}</button>`).join('') + 
@@ -210,8 +223,7 @@ function render() {
                 <div class="text-[11px] text-gray-500 mt-1">${t.note}</div>
             </div>`;
         });
-    }
-    else {
+    } else {
         html = `<div class="flex justify-between items-center mb-4"><h2 class="text-lg">備註筆記</h2><button onclick="addItem()" class="btn-rose">+ 加筆記</button></div>`;
         store.others.forEach(o => {
             html += `<div class="card-base">${actionBtns('others', o)}
@@ -225,7 +237,6 @@ function render() {
     localStorage.setItem('ok_trip_v5', JSON.stringify(store));
 }
 
-// 模態框邏輯
 function openModal(tab, id) {
     currentEditId = { tab, id };
     const item = store[tab].find(i => i.id === id);
